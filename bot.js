@@ -5,14 +5,31 @@ const fs = require('fs');
 // Caminho para a pasta auth_info
 const authPath = path.join(__dirname, 'auth_info');
 
-// Verificar se a pasta auth_info existe, se não, criar
-if (!fs.existsSync(authPath)) {
-    console.log('A pasta auth_info não existe, criando...');
-    fs.mkdirSync(authPath);  // Cria a pasta
-    fs.chmodSync(authPath, '0777');  // Permite acesso total à pasta (leitura e escrita)
-} else {
-    console.log('A pasta auth_info já existe.');
-}
+// Função para garantir que a pasta tenha permissões corretas
+const ensureAuthDir = () => {
+    if (!fs.existsSync(authPath)) {
+        console.log('A pasta auth_info não existe, criando...');
+        fs.mkdirSync(authPath, { recursive: true }); // Cria a pasta, se não existir
+        fs.chmodSync(authPath, '0777');  // Definindo permissões para leitura e escrita
+    } else {
+        console.log('A pasta auth_info já existe.');
+    }
+};
+
+// Verificar as permissões da pasta
+const checkPermissions = () => {
+    try {
+        fs.accessSync(authPath, fs.constants.R_OK | fs.constants.W_OK); // Verifica se a pasta é legível e gravável
+        console.log('A pasta auth_info tem permissões de leitura e escrita.');
+    } catch (err) {
+        console.error('Erro: Não foi possível acessar a pasta auth_info. Verifique as permissões.');
+        process.exit(1);  // Sai do processo em caso de erro
+    }
+};
+
+// Assegurando que a pasta auth_info tenha permissões corretas
+ensureAuthDir();
+checkPermissions();
 
 // Usar o estado de autenticação com a pasta auth_info
 const { state, saveCreds } = useMultiFileAuthState(authPath);
@@ -20,7 +37,6 @@ const { state, saveCreds } = useMultiFileAuthState(authPath);
 // Adicionando um log para verificar se o state foi carregado corretamente
 if (!state) {
     console.log('Erro: O estado de autenticação não foi carregado.');
-    console.log('Certifique-se de que a pasta auth_info tem permissão de leitura e escrita.');
     process.exit(1);  // Finaliza o script com erro
 } else {
     console.log('Estado de autenticação carregado com sucesso.');
