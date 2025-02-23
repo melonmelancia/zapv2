@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-bot",
+  "version": "1.0.0",
+  "description": "WhatsApp bot usando Baileys",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "auth": "node auth.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.3.0",  # Dependência para interação com WhatsApp Web
+    "fs": "0.0.1-security",  # Biblioteca para manipulação de arquivos
+    "path": "^0.12.7"  # Biblioteca para manipulação de caminhos de arquivos
+  }
+}
