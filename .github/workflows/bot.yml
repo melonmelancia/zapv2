@@ -1,0 +1,30 @@
+name: Enviar resposta do Forms para WhatsApp
+
+on:
+  repository_dispatch:
+    types: [new-response]
+
+jobs:
+  send-message:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar o repositório
+        uses: actions/checkout@v3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Instalar dependências
+        run: npm install @whiskeysockets/baileys
+
+      - name: Criar arquivo mensagem.json
+        run: echo '${{ github.event.client_payload.mensagem }}' > mensagem.json
+
+      - name: Executar o bot
+        run: node server.js
+        env:
+          PHONE_NUMBER: ${{ secrets.PHONE_NUMBER }}
+          WA_SESSION: ${{ secrets.WA_SESSION }}
