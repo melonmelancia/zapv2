@@ -1,35 +1,44 @@
 const { makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
 
-// Usar um estado de autenticação para carregar e salvar a sessão
-const { state, saveCreds } = useMultiFileAuthState(path.join(__dirname, 'auth_info'));
+// Criar pasta auth_info se não existir
+const authPath = path.join(__dirname, 'auth_info');
+if (!fs.existsSync(authPath)) {
+    fs.mkdirSync(authPath);
+}
 
-// Cria o socket de conexão
+// Usar estado de autenticação com a pasta auth_info
+const { state, saveCreds } = useMultiFileAuthState(authPath);
+
+// Criação da conexão com o WhatsApp
 const conn = makeWASocket({
-    auth: state,
-    printQRInTerminal: true,  // Mostrar o QR Code no terminal se necessário
+    auth: state,  // Usando o estado de autenticação
+    printQRInTerminal: true,  // Exibir QR Code no terminal se necessário
 });
 
-// Salva as credenciais quando a autenticação for bem-sucedida
-conn.ev.on('auth-state.update', (stateUpdate) => {
-    if (stateUpdate?.credentials) {
-        saveCreds();
-        console.log('Credenciais salvas');
+// Salvar as credenciais quando a autenticação for bem-sucedida
+conn.ev.on('auth-state.update', (update) => {
+    if (update?.credentials) {
+        saveCreds();  // Salvar as credenciais
+        console.log('Credenciais salvas com sucesso!');
     }
 });
 
-// Evento para quando o bot estiver conectado ao WhatsApp
+// Monitorar o status da conexão
 conn.ev.on('connection.update', (update) => {
-    const { connection } = update;
+    const { connection, lastDisconnect } = update;
     if (connection === 'open') {
         console.log('Conectado ao WhatsApp!');
     }
+    if (lastDisconnect?.error?.output?.statusCode === 401) {
+        console.log('Sessão expirada, por favor reautentique.');
+    }
 });
 
+// Função para iniciar o bot
 async function startBot() {
-    // Conecta o bot ao WhatsApp
-    await conn.connect();
+    await conn.connect();  // Conectar ao WhatsApp
 }
 
 startBot();
