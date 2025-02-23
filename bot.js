@@ -9,8 +9,8 @@ const authPath = path.join(__dirname, 'auth_info');
 const ensureAuthDir = () => {
     if (!fs.existsSync(authPath)) {
         console.log('A pasta auth_info não existe, criando...');
-        fs.mkdirSync(authPath, { recursive: true }); // Cria a pasta, se não existir
-        fs.chmodSync(authPath, '0777');  // Definindo permissões para leitura e escrita
+        fs.mkdirSync(authPath, { recursive: true });
+        fs.chmodSync(authPath, '0777'); // Permissões de leitura e escrita
     } else {
         console.log('A pasta auth_info já existe.');
     }
@@ -19,11 +19,11 @@ const ensureAuthDir = () => {
 // Verificar as permissões da pasta
 const checkPermissions = () => {
     try {
-        fs.accessSync(authPath, fs.constants.R_OK | fs.constants.W_OK); // Verifica se a pasta é legível e gravável
+        fs.accessSync(authPath, fs.constants.R_OK | fs.constants.W_OK); // Verifica se é legível e gravável
         console.log('A pasta auth_info tem permissões de leitura e escrita.');
     } catch (err) {
         console.error('Erro: Não foi possível acessar a pasta auth_info. Verifique as permissões.');
-        process.exit(1);  // Sai do processo em caso de erro
+        process.exit(1);
     }
 };
 
@@ -34,18 +34,10 @@ checkPermissions();
 // Usar o estado de autenticação com a pasta auth_info
 const { state, saveCreds } = useMultiFileAuthState(authPath);
 
-// Adicionando um log para verificar se o state foi carregado corretamente
-if (!state) {
-    console.log('Erro: O estado de autenticação não foi carregado.');
-    process.exit(1);  // Finaliza o script com erro
-} else {
-    console.log('Estado de autenticação carregado com sucesso.');
-}
-
-// Criar a conexão com o WhatsApp
+// Criar a conexão com o WhatsApp usando a autenticação armazenada
 const conn = makeWASocket({
     auth: state,  // Usando o estado de autenticação
-    printQRInTerminal: true,  // Exibe QR Code no terminal se necessário
+    printQRInTerminal: false,  // Desabilitar QR Code, já que estamos usando autenticação com código
 });
 
 // Salvar as credenciais quando a autenticação for bem-sucedida
