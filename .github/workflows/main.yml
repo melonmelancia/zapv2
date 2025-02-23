@@ -1,0 +1,32 @@
+name: WhatsApp Bot
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run the bot to generate QR code
+        run: node bot.js
+
+      - name: Upload QR code as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: qr-code
+          path: qr.png
+
