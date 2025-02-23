@@ -1,6 +1,5 @@
 name: WhatsApp Bot
 
-# Eventos que acionam o workflow
 on:
   push:
     branches:
