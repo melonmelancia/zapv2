@@ -1,34 +1,27 @@
-const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const QRCode = require('qrcode');  // Adiciona a biblioteca para gerar o QR Code
-const path = require('path');
+const { WAConnection } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 
-async function startBot() {
-  const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'auth_info'));
-  const sock = makeWASocket({ auth: state });
+// Cria uma nova instância do WAConnection
+const conn = new WAConnection();
 
-  sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === 'close') {
-      const shouldReconnect = lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut;
-      console.log('Conexão perdida, reconectando:', shouldReconnect);
-    }
-    if (connection === 'open') {
-      console.log('Bot está online!');
-    }
-  });
+// Tenta carregar a sessão salva
+fs.existsSync('./auth_info/session.json') && conn.loadAuthInfo('./auth_info/session.json');
 
-  sock.ev.on('creds.update', saveCreds);
+conn.on('open', () => {
+    console.log('Conectado ao WhatsApp!');
+});
 
-  sock.ev.on('qr', (qr) => {
-    console.log('QR Code gerado para escanear:', qr);
-    QRCode.toFile(path.join(__dirname, 'qr.png'), qr, (err) => {
-      if (err) throw err;
-      console.log('QR Code gerado e salvo como qr.png');
+conn.on('qr', (qr) => {
+    console.log('QR RECEIVED', qr);
+    // Você pode gerar o QR Code aqui caso precise para autenticar na primeira vez
+    require('qrcode').toString(qr, { type: 'terminal' }, (err, qrCode) => {
+        if (err) throw err;
+        console.log(qrCode);
     });
-  });
+});
 
-  console.log("Iniciando a conexão...");
+async function startBot() {
+    await conn.connect();
 }
 
 startBot();
