@@ -1,26 +1,34 @@
-const { WAConnection } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const fs = require('fs');
+const path = require('path');
 
-// Cria uma nova instância do WAConnection
-const conn = new WAConnection();
+// Usar um estado de autenticação para carregar e salvar a sessão
+const { state, saveCreds } = useMultiFileAuthState(path.join(__dirname, 'auth_info'));
 
-// Tenta carregar a sessão salva
-fs.existsSync('./auth_info/session.json') && conn.loadAuthInfo('./auth_info/session.json');
-
-conn.on('open', () => {
-    console.log('Conectado ao WhatsApp!');
+// Cria o socket de conexão
+const conn = makeWASocket({
+    auth: state,
+    printQRInTerminal: true,  // Mostrar o QR Code no terminal se necessário
 });
 
-conn.on('qr', (qr) => {
-    console.log('QR RECEIVED', qr);
-    // Você pode gerar o QR Code aqui caso precise para autenticar na primeira vez
-    require('qrcode').toString(qr, { type: 'terminal' }, (err, qrCode) => {
-        if (err) throw err;
-        console.log(qrCode);
-    });
+// Salva as credenciais quando a autenticação for bem-sucedida
+conn.ev.on('auth-state.update', (stateUpdate) => {
+    if (stateUpdate?.credentials) {
+        saveCreds();
+        console.log('Credenciais salvas');
+    }
+});
+
+// Evento para quando o bot estiver conectado ao WhatsApp
+conn.ev.on('connection.update', (update) => {
+    const { connection } = update;
+    if (connection === 'open') {
+        console.log('Conectado ao WhatsApp!');
+    }
 });
 
 async function startBot() {
+    // Conecta o bot ao WhatsApp
     await conn.connect();
 }
 
