@@ -2,19 +2,28 @@ const { makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys
 const path = require('path');
 const fs = require('fs');
 
-// Criar a pasta auth_info se não existir
+// Caminho para a pasta auth_info
 const authPath = path.join(__dirname, 'auth_info');
+
+// Verificar se a pasta auth_info existe, se não, criar
 if (!fs.existsSync(authPath)) {
-    fs.mkdirSync(authPath);
+    console.log('A pasta auth_info não existe, criando...');
+    fs.mkdirSync(authPath);  // Cria a pasta
+    fs.chmodSync(authPath, '0777');  // Permite acesso total à pasta (leitura e escrita)
+} else {
+    console.log('A pasta auth_info já existe.');
 }
 
 // Usar o estado de autenticação com a pasta auth_info
 const { state, saveCreds } = useMultiFileAuthState(authPath);
 
-// Verificar se o estado foi corretamente carregado
+// Adicionando um log para verificar se o state foi carregado corretamente
 if (!state) {
-    console.log("Erro: O estado de autenticação não foi carregado.");
-    process.exit(1); // Finaliza o script com erro, caso o estado não esteja disponível
+    console.log('Erro: O estado de autenticação não foi carregado.');
+    console.log('Certifique-se de que a pasta auth_info tem permissão de leitura e escrita.');
+    process.exit(1);  // Finaliza o script com erro
+} else {
+    console.log('Estado de autenticação carregado com sucesso.');
 }
 
 // Criar a conexão com o WhatsApp
