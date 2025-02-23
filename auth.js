@@ -1,31 +1,27 @@
-const { useMultiFileAuthState, makeWASocket } = require('@whiskeysockets/baileys');
-const { writeFileSync } = require('fs');
-const path = require('path');
+const { WAConnection } = require('@whiskeysockets/baileys');
+const fs = require('fs');
 
-async function authenticate() {
-  const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, 'auth_info'));
-  const sock = makeWASocket({ auth: state });
+// Cria uma nova instância do WAConnection
+const conn = new WAConnection();
 
-  sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === 'close') {
-      if (lastDisconnect.error?.output?.statusCode !== 401) {
-        console.log('Reconectando...');
-        authenticate();  // Reconectar se necessário
-      }
-    }
-    if (connection === 'open') {
-      console.log('Conectado ao WhatsApp!');
-      // Salve as credenciais após a primeira conexão
-      sock.ev.on('creds.update', saveCreds);
-    }
-  });
+conn.on('qr', (qr) => {
+    console.log('QR RECEIVED', qr);
+    // Aqui você pode gerar o QR Code para escanear no WhatsApp
+    require('qrcode').toString(qr, { type: 'terminal' }, (err, qrCode) => {
+        if (err) throw err;
+        console.log(qrCode);
+    });
+});
 
-  sock.ev.on('qr', (qr) => {
-    console.log('QR Code gerado, escaneie com o WhatsApp!');
-    // Você pode usar uma biblioteca para exibir o QR Code ou apenas mostrá-lo no console
-    console.log(qr);
-  });
+conn.on('open', () => {
+    console.log('Conectado ao WhatsApp!');
+    // Salva a sessão para uso futuro
+    fs.writeFileSync('./auth_info/session.json', JSON.stringify(conn.base64EncodedAuthInfo()));
+    console.log('Sessão salva com sucesso!');
+});
+
+async function startAuth() {
+    await conn.connect();
 }
 
-authenticate();
+startAuth();
