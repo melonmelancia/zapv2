@@ -36,7 +36,7 @@ const { state, saveCreds } = useMultiFileAuthState(authPath);
 
 // Criar a conexão com o WhatsApp usando a autenticação armazenada
 const conn = makeWASocket({
-    auth: state,  // Usando o estado de autenticação
+    auth: state || {},  // Usando o estado de autenticação (se disponível)
     printQRInTerminal: false,  // Desabilitar QR Code, já que estamos usando autenticação com código
 });
 
