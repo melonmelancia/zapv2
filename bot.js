@@ -18,7 +18,7 @@ async function startBot() {
 
   sock.ev.on('creds.update', saveCreds);
 
-  // Se o QR Code for necessário
+  // Aqui imprimimos o QR Code para escaneamento
   sock.ev.on('qr', (qr) => {
     console.log('QR Code para escanear:', qr);
   });
