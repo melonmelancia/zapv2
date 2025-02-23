@@ -7,8 +7,8 @@
     "start": "node bot.js"
   },
   "dependencies": {
-    "whatsapp-web.js": "^1.14.0",  // exemplo de dependência
-    "baileys": "^6.3.0"            // exemplo de dependência
+    "whatsapp-web.js": "^1.14.0",  
+    "baileys": "^6.3.0"            
   },
   "devDependencies": {
     "nodemon": "^2.0.13"
