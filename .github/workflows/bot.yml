@@ -1,30 +1,29 @@
-name: Enviar resposta do Forms para WhatsApp
+name: WhatsApp Bot
 
+# Eventos que acionam o workflow
 on:
-  repository_dispatch:
-    types: [new-response]
+  push:
+    branches:
+      - main  # Executar quando houver push na branch 'main'
+  workflow_dispatch:  # Permite execução manual através do GitHub
 
 jobs:
-  send-message:
-    runs-on: ubuntu-latest
+  run-whatsapp-bot:
+    runs-on: ubuntu-latest  # Ambiente do GitHub Actions
 
     steps:
-      - name: Clonar o repositório
-        uses: actions/checkout@v3
+      - name: Check out the repository
+        uses: actions/checkout@v2  # Faz o checkout do código
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v2  # Instala o Node.js
         with:
-          node-version: 18
+          node-version: '16'  # Versão do Node.js
 
-      - name: Instalar dependências
-        run: npm install @whiskeysockets/baileys
+      - name: Install dependencies
+        run: npm install  # Instala as dependências do projeto
 
-      - name: Criar arquivo mensagem.json
-        run: echo '${{ github.event.client_payload.mensagem }}' > mensagem.json
-
-      - name: Executar o bot
-        run: node server.js
+      - name: Run WhatsApp bot
+        run: node bot.js  # Executa o código do bot
         env:
-          PHONE_NUMBER: ${{ secrets.PHONE_NUMBER }}
-          WA_SESSION: ${{ secrets.WA_SESSION }}
+          WA_SESSION: ${{ secrets.WA_SESSION }}  # Usando as credenciais salvas no GitHub Secrets
