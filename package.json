@@ -8,8 +8,8 @@
     "auth": "node auth.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.3.0",  # Dependência para interação com WhatsApp Web
-    "fs": "0.0.1-security",  # Biblioteca para manipulação de arquivos
-    "path": "^0.12.7"  # Biblioteca para manipulação de caminhos de arquivos
+    "@whiskeysockets/baileys": "^6.3.0",
+    "fs": "0.0.1-security",
+    "path": "^0.12.7"
   }
 }
