@@ -40,14 +40,13 @@ async function startBot() {
     try {
         logger.info('Iniciando o bot...');
         
-        const authPath = './auth_info'; // Alterado para usar múltiplos arquivos de autenticação
-        const { state, saveCreds } = useMultiFileAuthState(authPath);
+        const authPath = './auth_info'; // Caminho do arquivo de autenticação
+        const { state, saveCreds } = await useMultiFileAuthState(authPath);
 
         const socket = makeWASocket({
             auth: state,
             logger,
             printQRInTerminal: true,
-            // Outros parâmetros podem ser configurados aqui
         });
 
         socket.ev.on('creds.update', saveCreds);
