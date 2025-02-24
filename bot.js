@@ -1,8 +1,8 @@
-const qrcode = require('qrcode-terminal');
+const qrcode = require('qrcode'); // Usando o pacote 'qrcode' para gerar PNG
 const { useMultiFileAuthState, makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config(); // Para carregar variáveis de ambiente
 
 // Caminho para o diretório de autenticação
 const authPath = './auth_info';
@@ -14,13 +14,19 @@ async function startBot() {
   // Cria a conexão com o WhatsApp
   const sock = makeWASocket({
     auth: state,
-    printQRInTerminal: false, // Não imprimir QR Code no terminal diretamente
+    printQRInTerminal: false, // Desativando a impressão no terminal
   });
 
   // Geração do QR Code
   sock.ev.on('qr', (qr) => {
-    qrcode.generate(qr, { small: true }); // Gera QR Code no terminal
-    fs.writeFileSync(path.join(__dirname, 'qr_code.png'), qr); // Salva o QR Code como imagem
+    // Gera QR Code como imagem PNG e salva
+    qrcode.toFile(path.join(__dirname, 'qr_code.png'), qr, (err) => {
+      if (err) {
+        console.error('Erro ao gerar QR Code:', err);
+      } else {
+        console.log('QR Code gerado e salvo como qr_code.png');
+      }
+    });
   });
 
   // Atualização da conexão
