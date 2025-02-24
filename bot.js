@@ -6,7 +6,7 @@ const nodemailer = require('nodemailer');
 // Diretório de autenticação
 const authPath = join(__dirname, 'auth_info');
 if (!existsSync(authPath)) {
-    mkdirSync(authPath);
+    mkdirSync(authPath); // Cria o diretório se não existir
 }
 
 const { state, saveCreds } = useMultiFileAuthState(authPath);
@@ -17,11 +17,11 @@ async function startBot() {
     
     const sock = makeWASocket({
         printQRInTerminal: true,
-        auth: state
+        auth: state  // Passa o estado de autenticação
     });
 
     sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, isNewUser } = update;
+        const { connection, lastDisconnect } = update;
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('Connection closed due to', lastDisconnect.error, ', reconnecting:', shouldReconnect);
@@ -33,7 +33,7 @@ async function startBot() {
         }
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    sock.ev.on('creds.update', saveCreds);  // Salva as credenciais
 
     sock.ev.on('messages.upsert', async (m) => {
         console.log('Received message:', m);
@@ -64,4 +64,4 @@ async function sendEmail(message) {
 }
 
 // Inicia o bot
-startBot().catch(err => console.error(err));
+startBot().catch(err => console.error('Erro ao iniciar o bot:', err));
