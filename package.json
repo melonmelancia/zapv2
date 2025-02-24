@@ -7,10 +7,10 @@
     "start": "node bot.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.13",  // Versão mais recente do Baileys
-    "dotenv": "^16.0.3",  // Para ler variáveis de ambiente
-    "nodemailer": "^6.7.0",  // Para envio de emails
-    "pino": "^8.5.0"  // Para log
+    "@whiskeysockets/baileys": "^6.7.13",  
+    "dotenv": "^16.0.3",  
+    "nodemailer": "^6.7.0",  
+    "pino": "^8.5.0"  
   },
   "devDependencies": {},
   "engines": {
