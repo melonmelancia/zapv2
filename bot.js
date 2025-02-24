@@ -1,8 +1,9 @@
 import pkg from '@whiskeysockets/baileys';
-const { makeWASocket, useMultiFileAuthState, DisconnectReason } = pkg;
 import { config } from 'dotenv';
 import nodemailer from 'nodemailer';
 import pino from 'pino';
+import fs from 'fs';
+import path from 'path';
 
 // Carregar as variáveis de ambiente do arquivo .env
 config();
@@ -16,20 +17,34 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// Função para enviar e-mail
-async function sendErrorEmail(errorDetails) {
+// Função para enviar o QR Code por e-mail
+async function sendQRCodeByEmail(qrCode) {
     try {
+        // Salvar o QR Code como imagem temporária
+        const qrCodePath = path.join(__dirname, 'qrcode.png');
+        fs.writeFileSync(qrCodePath, qrCode);
+
         const mailOptions = {
             from: process.env.EMAIL_USER,
             to: process.env.EMAIL_DESTINATARIO,
-            subject: 'Erro no Bot',
-            text: `Ocorreu um erro no bot: ${errorDetails}`,
+            subject: 'QR Code do Bot WhatsApp',
+            text: 'Aqui está o QR Code gerado para autenticar o bot no WhatsApp.',
+            attachments: [
+                {
+                    filename: 'qrcode.png',
+                    path: qrCodePath,  // Anexar o arquivo QR Code
+                }
+            ],
         };
 
+        // Enviar o e-mail com o QR Code anexado
         await transporter.sendMail(mailOptions);
-        console.log("Erro enviado por e-mail.");
+        console.log('QR Code enviado por e-mail!');
+        
+        // Remover o arquivo temporário do QR Code
+        fs.unlinkSync(qrCodePath);
     } catch (err) {
-        console.log("Erro ao enviar e-mail:", err);
+        console.error("Erro ao enviar QR Code por e-mail:", err);
     }
 }
 
@@ -50,6 +65,12 @@ async function startBot() {
         });
 
         socket.ev.on('creds.update', saveCreds);
+
+        // Captura o QR Code gerado e envia por e-mail
+        socket.ev.on('qr', (qrCode) => {
+            console.log('QR Code gerado');
+            sendQRCodeByEmail(qrCode); // Envia o QR Code por e-mail
+        });
 
         socket.ev.on('connection.update', (update) => {
             const { connection, lastDisconnect } = update;
