@@ -1,5 +1,5 @@
 import pkg from '@whiskeysockets/baileys';
-const { makeWASocket, useSingleFileAuthState, DisconnectReason } = pkg;
+const { makeWASocket, useMultiFileAuthState, DisconnectReason } = pkg;
 import { config } from 'dotenv';
 import nodemailer from 'nodemailer';
 import pino from 'pino';
@@ -40,8 +40,8 @@ async function startBot() {
     try {
         logger.info('Iniciando o bot...');
         
-        const authPath = './auth_info.json';
-        const { state, saveCreds } = useSingleFileAuthState(authPath);
+        const authPath = './auth_info'; // Alterado para usar múltiplos arquivos de autenticação
+        const { state, saveCreds } = useMultiFileAuthState(authPath);
 
         const socket = makeWASocket({
             auth: state,
