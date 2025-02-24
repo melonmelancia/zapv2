@@ -1,8 +1,8 @@
-import { makeWASocket, useSingleFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
-import { Boom } from '@hapi/boom';
-import fs from 'fs';
-import pino from 'pino';
-import nodemailer from 'nodemailer';
+const { makeWASocket, useSingleFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { Boom } = require('@hapi/boom');
+const fs = require('fs');
+const pino = require('pino');
+const nodemailer = require('nodemailer');
 
 // Configuração de logging
 const logger = pino({ level: 'info' });
