@@ -1,19 +1,16 @@
 {
-  "name": "zap-bot",
+  "name": "zapv2",
   "version": "1.0.0",
-  "description": "Bot para WhatsApp utilizando Baileys",
+  "description": "Bot do WhatsApp",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.13",  
-    "dotenv": "^16.0.3",  
-    "nodemailer": "^6.7.0",  
-    "pino": "^8.5.0"  
+    "@whiskeysockets/baileys": "^6.7.13",
+    "dotenv": "^16.0.3",
+    "nodemailer": "^6.7.0",
+    "pino": "^8.10.0"
   },
-  "devDependencies": {},
-  "engines": {
-    "node": ">=16.0.0"
-  }
+  "type": "module"  
 }
