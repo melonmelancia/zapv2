@@ -1,28 +1,19 @@
-const { makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
 
 const authPath = path.join(__dirname, 'auth_info');
 
-// Função para garantir que a pasta auth_info existe
+// Criando a pasta auth_info caso não exista
 if (!fs.existsSync(authPath)) {
     console.log('A pasta auth_info não existe, criando...');
     fs.mkdirSync(authPath, { recursive: true });
 }
 
-// Verifique se a pasta tem permissão de leitura e escrita
-fs.access(authPath, fs.constants.R_OK | fs.constants.W_OK, (err) => {
-    if (err) {
-        console.error('Erro: A pasta auth_info não tem permissão de leitura/escrita.');
-        process.exit(1);
-    } else {
-        console.log('A pasta auth_info tem permissões de leitura e escrita.');
-    }
-});
-
-// Inicializando o estado de autenticação
+// Função para inicializar o bot
 const startBot = async () => {
     const { state, saveCreds } = await useMultiFileAuthState(authPath);
+    const { version } = await fetchLatestBaileysVersion();
 
     if (!state || !state.creds) {
         console.error('Erro: O estado de autenticação não foi carregado corretamente.');
@@ -30,19 +21,31 @@ const startBot = async () => {
     }
 
     const sock = makeWASocket({
-        auth: state,
-        printQRInTerminal: false, // Como você quer código ao invés de QR
+        version,
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, fs.promises),
+        },
+        printQRInTerminal: false, // Desativa o QR Code
     });
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
+    sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, isNewLogin } = update;
 
         if (connection === 'open') {
-            console.log('Conectado ao WhatsApp!');
+            console.log('✅ Conectado ao WhatsApp!');
         } else if (connection === 'close') {
-            console.log('Desconectado:', lastDisconnect.error);
+            console.log('⚠️ Conexão fechada:', lastDisconnect?.error);
+        } else if (isNewLogin) {
+            console.log('🔄 Gerando código de emparelhamento...');
+            try {
+                const code = await sock.requestPairingCode("seu-numero-aqui"); // Exemplo: "5511999999999"
+                console.log(`🔑 Código de emparelhamento: ${code}`);
+            } catch (error) {
+                console.error('❌ Erro ao gerar código:', error);
+            }
         }
     });
 };
