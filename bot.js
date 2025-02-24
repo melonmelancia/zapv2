@@ -1,54 +1,60 @@
-const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const dotenv = require('dotenv');
-dotenv.config();
+const { WAConnection, MessageType, Mimetype } = require('@adiwajshing/baileys');
+const fs = require('fs');
 
-// Função para iniciar o bot
-async function startBot() {
-  try {
-    const { state, saveCreds } = await useMultiFileAuthState('session'); // 'session' é o diretório onde a sessão será salva
+async function start() {
+  const conn = new WAConnection();
 
-    console.log('Sessão carregada:', state); // Verifique se o estado da sessão está sendo carregado
+  // Função chamada quando o bot está pronto
+  conn.on('open', () => {
+    console.log('Bot está pronto!');
+  });
 
-    const sock = makeWASocket({
-      auth: state,
-    });
+  // Função chamada quando uma mensagem de chat é recebida
+  conn.on('chat-update', async (chatUpdate) => {
+    if (chatUpdate.messages) {
+      const message = chatUpdate.messages.all()[0];
+      const messageType = message.key.remoteJid.endsWith('@g.us') ? 'grupo' : 'individual';
+      console.log(`Mensagem recebida em chat ${messageType}:`, message);
 
-    sock.ev.on('connection.update', (update) => {
-      const { connection, lastDisconnect } = update;
-      console.log('Conexão atual:', connection); // Log do status da conexão
-      if (connection === 'close') {
-        const reason = lastDisconnect?.error?.output?.statusCode;
-        if (reason === DisconnectReason.loggedOut) {
-          console.log('Você foi desconectado. Realizando nova autenticação...');
-          startBot();  // Recria a conexão caso haja desconexão
+      // Responde à mensagem com um texto simples
+      if (message.message.conversation) {
+        const text = message.message.conversation;
+        console.log(`Mensagem: ${text}`);
+        
+        // Respondendo ao usuário
+        if (text === 'Olá') {
+          await conn.sendMessage(message.key.remoteJid, 'Olá! Como posso ajudar?', MessageType.text);
         }
       }
+    }
+  });
+
+  // Função chamada quando o QR Code é recebido
+  conn.on('qr', (qr) => {
+    // Exibindo o QR Code (caso precise)
+    console.log('QR Code recebido:', qr);
+  });
+
+  // Função para autenticar via código de 6 dígitos
+  conn.on('auth_failure', (err) => {
+    console.error('Falha na autenticação:', err);
+  });
+
+  // Conectando e autenticando via código de 6 dígitos
+  const phoneNumber = 'whatsapp:+55YOURNUMBER';  // Substitua com seu número de telefone
+  console.log('Enviando código de autenticação para o número:', phoneNumber);
+  
+  try {
+    await conn.connect({
+      phoneNumber: phoneNumber,  // Número do WhatsApp
+      code: '123456'  // Código de 6 dígitos enviado via SMS
     });
 
-    // Evento quando a conexão for estabelecida
-    sock.ev.on('open', () => {
-      console.log('Bot conectado com sucesso!');
-    });
-
-    // Lidar com mensagens recebidas
-    sock.ev.on('messages.upsert', async (message) => {
-      const { messages } = message;
-      if (messages && messages.length > 0) {
-        const messageContent = messages[0];
-        console.log(`Mensagem recebida: ${messageContent.message.conversation}`);
-
-        // Responder a mensagem recebida
-        await sock.sendMessage(messageContent.key.remoteJid, {
-          text: `Você disse: ${messageContent.message.conversation}`,
-        });
-      }
-    });
+    console.log('Autenticado com sucesso!');
   } catch (err) {
-    console.error('Erro ao iniciar o bot:', err);
+    console.error('Erro ao tentar autenticar:', err);
   }
 }
 
-// Iniciar o bot
-startBot().catch((err) => {
-  console.error('Erro ao iniciar o bot:', err);
-});
+// Iniciando o bot
+start();
