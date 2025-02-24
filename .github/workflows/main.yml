@@ -9,26 +9,21 @@ jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
-      # Passo 1: Verificar o código
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Passo 2: Configurar Node.js (versão 20 ou superior)
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '20'  # Defina para a versão mais recente compatível com o npm 11.x
+          node-version: '20'
 
-      # Passo 3: Instalar dependências
       - name: Install npm dependencies
         run: |
-          npm install  # Este passo instalará as dependências do projeto
+          npm ci  # Utilizar npm ci para garantir a instalação das dependências do package-lock.json
 
-      # Passo 4: Rodar o bot
       - name: Run the bot
         run: node bot.js
 
-      # Passo 5: (Opcional) Fazer upload do QR Code ou outro arquivo, se necessário
       - name: Upload QR Code
         uses: actions/upload-artifact@v4
         with:
