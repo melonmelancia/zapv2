@@ -1,31 +1,48 @@
-const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
+const qrcode = require('qrcode-terminal');
+const { useMultiFileAuthState, makeWASocket, DisconnectReason } = require('@whiskeysockets/baileys');
 const fs = require('fs');
-const { generate } = require('qrcode-terminal');
+const path = require('path');
+require('dotenv').config();
 
-(async () => {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info');
-    const sock = makeWASocket({
-        auth: state,
-        printQRInTerminal: false,
-    });
+// Caminho para o diretório de autenticação
+const authPath = './auth_info';
 
-    sock.ev.on('creds.update', saveCreds);
-    sock.ev.on('connection.update', (update) => {
-        const { qr } = update;
-        if (qr) {
-            console.log('Escaneie o QR Code abaixo ou abra o arquivo qr_code.png:');
-            generate(qr, { small: true });
-            fs.writeFileSync('qr_code.png', qr);
-        }
-    });
+// Função para iniciar o bot
+async function startBot() {
+  const { state, saveState } = await useMultiFileAuthState(authPath);
 
-    sock.ev.on('messages.upsert', async (m) => {
-        const msg = m.messages[0];
-        if (!msg.message) return;
+  // Cria a conexão com o WhatsApp
+  const sock = makeWASocket({
+    auth: state,
+    printQRInTerminal: false, // Não imprimir QR Code no terminal diretamente
+  });
 
-        const sender = msg.key.remoteJid;
-        console.log('Mensagem recebida de:', sender);
+  // Geração do QR Code
+  sock.ev.on('qr', (qr) => {
+    qrcode.generate(qr, { small: true }); // Gera QR Code no terminal
+    fs.writeFileSync(path.join(__dirname, 'qr_code.png'), qr); // Salva o QR Code como imagem
+  });
 
-        await sock.sendMessage(sender, { text: 'Olá!' });
-    });
-})();
+  // Atualização da conexão
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect } = update;
+    console.log(update);
+    if (connection === 'close') {
+      const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+      if (shouldReconnect) {
+        startBot(); // Reinicia a conexão se não estiver desconectado por logout
+      }
+    } else if (connection === 'open') {
+      console.log('Conectado ao WhatsApp!');
+    }
+  });
+
+  // Manipulador de mensagens (exemplo)
+  sock.ev.on('messages.upsert', (message) => {
+    const { messages, type } = message;
+    console.log('Mensagem recebida:', messages);
+  });
+}
+
+// Inicia o bot
+startBot().catch((error) => console.error('Erro ao iniciar o bot:', error));
