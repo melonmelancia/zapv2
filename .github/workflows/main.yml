@@ -9,34 +9,30 @@ on:
       - main
 
 jobs:
-  build:
+  install:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout do código
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-
-      - name: Install dependencies (npm install)
-        run: |
-          npm install  # Garante que o package-lock.json seja gerado ou atualizado
-
-      - name: Commit package-lock.json
+      # Configuração do Git para o GitHub Actions
+      - name: Set up Git for GitHub Actions
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+      # Instala as dependências
+      - name: Install dependencies
+        run: npm install
+
+      # Realiza o commit das mudanças (se houver) no package-lock.json
+      - name: Commit changes
+        run: |
           git add package-lock.json
           git commit -m "Update package-lock.json" || echo "No changes to commit"
           git push
 
-      - name: Run tests (npm ci)
-        run: |
-          npm ci  # Agora o npm ci pode ser executado com o package-lock.json atualizado
-
-      - name: Run bot (example)
-        run: |
-          node bot.js
+  # Adicione outros jobs se necessário
