@@ -24,7 +24,7 @@ jobs:
         run: node bot.js
 
       - name: Upload QR Code
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3  # Atualizado para a versão v3
         with:
           name: qr_code_image
           path: qr_code.png
