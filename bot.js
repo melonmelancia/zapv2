@@ -1,4 +1,4 @@
-const { makeWASocket, useMultiFileAuthState } = require('@adiwajshing/baileys');
+const { WAConnection, MessageType } = require('@adiwajshing/baileys');
 const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
@@ -13,37 +13,35 @@ async function startBot() {
   try {
     console.log('Iniciando o bot...');
     
-    const { state, saveCreds } = useMultiFileAuthState(authPath);
-    
-    const sock = makeWASocket({
-      auth: state,
+    const conn = new WAConnection();
+
+    // Lê os dados de autenticação ou cria se não existirem
+    conn.loadAuthInfo(authPath);
+
+    conn.on('open', () => {
+      console.log('Conectado com sucesso!');
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    conn.on('qr', qr => {
+      console.log('Escaneie o código QR:', qr);
+    });
 
-    sock.ev.on('messages.upsert', async (message) => {
-      const msg = message.messages[0];
+    conn.on('message-new', async (message) => {
+      const msg = message.message;
       console.log('Mensagem recebida: ', msg);
 
-      if (msg.key.fromMe) {
-        return; // Ignora mensagens enviadas pelo bot
-      }
-
-      // Exemplo de resposta automática
-      if (msg.message.conversation === 'oi') {
-        await sock.sendMessage(msg.key.remoteJid, { text: 'Olá! Como posso te ajudar?' });
+      if (msg.conversation === 'oi') {
+        await conn.sendMessage(message.key.remoteJid, 'Olá! Como posso te ajudar?');
       }
 
       // Enviar e-mail ao destinatário
-      if (msg.message.conversation === 'email') {
+      if (msg.conversation === 'email') {
         await sendEmail('Assunto do E-mail', 'Mensagem do corpo do e-mail');
-        await sock.sendMessage(msg.key.remoteJid, { text: 'E-mail enviado com sucesso!' });
+        await conn.sendMessage(message.key.remoteJid, 'E-mail enviado com sucesso!');
       }
     });
 
-    await sock.connect();
-    console.log('Bot conectado!');
-    
+    await conn.connect();
   } catch (error) {
     console.error('Erro ao iniciar o bot:', error);
   }
