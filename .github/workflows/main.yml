@@ -1,31 +1,42 @@
-name: Run WhatsApp Bot
+name: CI Workflow
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  run-bot:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: '14'
 
-      - name: Install npm dependencies
+      - name: Install dependencies (npm install)
         run: |
-          npm ci  # Utilizar npm ci para garantir a instalação das dependências do package-lock.json
+          npm install  # Garante que o package-lock.json seja gerado ou atualizado
 
-      - name: Run the bot
-        run: node bot.js
+      - name: Commit package-lock.json
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add package-lock.json
+          git commit -m "Update package-lock.json" || echo "No changes to commit"
+          git push
 
-      - name: Upload QR Code
-        uses: actions/upload-artifact@v4
-        with:
-          name: qr_code_image
-          path: qr_code.png
+      - name: Run tests (npm ci)
+        run: |
+          npm ci  # Agora o npm ci pode ser executado com o package-lock.json atualizado
+
+      - name: Run bot (example)
+        run: |
+          node bot.js
