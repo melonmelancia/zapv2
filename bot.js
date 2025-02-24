@@ -1,11 +1,15 @@
-const { makeWASocket, useSingleFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@adiwajshing/baileys');
+const { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = require('@adiwajshing/baileys');
 const { existsSync, mkdirSync } = require('fs');
 const { join } = require('path');
 const nodemailer = require('nodemailer');
 
-// Configuração do estado de autenticação
+// Diretório de autenticação
 const authPath = join(__dirname, 'auth_info');
-const { state, saveCreds } = useSingleFileAuthState(authPath);
+if (!existsSync(authPath)) {
+    mkdirSync(authPath);
+}
+
+const { state, saveCreds } = useMultiFileAuthState(authPath);
 
 async function startBot() {
     const { version, isLatest } = await fetchLatestBaileysVersion();
@@ -20,7 +24,7 @@ async function startBot() {
             const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('Connection closed due to', lastDisconnect.error, ', reconnecting:', shouldReconnect);
             if (shouldReconnect) {
-                startBot();  // Restart the bot if disconnected
+                startBot();  // Reconnect if the error was not loggedOut
             }
         } else if (connection === 'open') {
             console.log('Connection established!');
@@ -31,9 +35,9 @@ async function startBot() {
 
     sock.ev.on('messages.upsert', async (m) => {
         console.log('Received message:', m);
-        if (m.messages[0].key.fromMe) return;  // Ignore messages sent by the bot itself
+        if (m.messages[0].key.fromMe) return;  // Ignore messages from the bot itself
 
-        // Aqui você pode processar as mensagens recebidas, por exemplo, enviar um e-mail com a mensagem
+        // Aqui você pode processar as mensagens recebidas, por exemplo, enviando um e-mail com a mensagem
         await sendEmail(m.messages[0].message.conversation);
     });
 }
