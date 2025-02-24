@@ -1,34 +1,30 @@
-name: Run Bot on GitHub Actions
+name: Run WhatsApp Bot
 
 on:
   push:
     branches:
-      - main  # A branch que vai disparar o workflow
-  pull_request:
-    branches:
-      - main  # A branch que vai disparar o workflow
+      - main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest  # Ambiente de execução
-
+  run-bot:
+    runs-on: ubuntu-latest
     steps:
-      # Passo 1: Fazer checkout do código do repositório
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      # Passo 2: Configurar o Node.js (definindo a versão)
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v2
         with:
-          node-version: '16'  # Versão do Node.js, ajuste conforme necessário
+          node-version: '14'
 
-      # Passo 3: Instalar as dependências do projeto
       - name: Install dependencies
         run: npm install
 
-      # Passo 4: Rodar o bot.js
-      - name: Run bot.js
-        env:
-          WA_TOKEN: ${{ secrets.WA_TOKEN }}  # Acesso ao token armazenado nos GitHub Secrets
+      - name: Run the bot
         run: node bot.js
+
+      - name: Upload QR Code
+        uses: actions/upload-artifact@v2
+        with:
+          name: qr_code_image
+          path: qr_code.png
