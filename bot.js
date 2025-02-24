@@ -1,57 +1,61 @@
-const { WAConnection, MessageType } = require('@adiwajshing/baileys');
-const fs = require('fs');
+const { makeWASocket, useSingleFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@adiwajshing/baileys');
+const { existsSync, mkdirSync } = require('fs');
+const { join } = require('path');
 const nodemailer = require('nodemailer');
 
-// Função para enviar o QR Code por e-mail (opcional)
-async function sendQRCodeEmail(qrImagePath) {
-  let transporter = nodemailer.createTransport({
-    service: 'gmail', // ou qualquer outro serviço de e-mail
-    auth: {
-      user: 'u1024025@gmail.com',
-      pass: 'netinho123',
-    },
-  });
-
-  let mailOptions = {
-    from: 'u1024025@gmail.com',
-    to: 'netopc53@gmail.com',
-    subject: 'QR Code do WhatsApp',
-    text: 'Aqui está o QR Code gerado pelo bot do WhatsApp.',
-    attachments: [
-      {
-        filename: 'qr-code.png',
-        path: qrImagePath, // Caminho para o arquivo do QR code
-      },
-    ],
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('QR code enviado por e-mail com sucesso!');
-  } catch (error) {
-    console.error('Erro ao enviar e-mail:', error);
-  }
-}
+// Configuração do estado de autenticação
+const authPath = join(__dirname, 'auth_info');
+const { state, saveCreds } = useSingleFileAuthState(authPath);
 
 async function startBot() {
-  const conn = new WAConnection();
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    const sock = makeWASocket({
+        printQRInTerminal: true,
+        auth: state
+    });
 
-  conn.on('qr', (qr) => {
-    console.log('QR RECEIVED', qr);
-    // Salvando o QR Code em um arquivo de imagem
-    const qrImagePath = 'qr-code.png';
-    fs.writeFileSync(qrImagePath, qr, { encoding: 'base64' });
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect, isNewUser } = update;
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            console.log('Connection closed due to', lastDisconnect.error, ', reconnecting:', shouldReconnect);
+            if (shouldReconnect) {
+                startBot();  // Restart the bot if disconnected
+            }
+        } else if (connection === 'open') {
+            console.log('Connection established!');
+        }
+    });
 
-    // Enviando o QR Code por e-mail
-    sendQRCodeEmail(qrImagePath);
-  });
+    sock.ev.on('creds.update', saveCreds);
 
-  conn.on('open', () => {
-    console.log('Bot is connected and logged in');
-  });
+    sock.ev.on('messages.upsert', async (m) => {
+        console.log('Received message:', m);
+        if (m.messages[0].key.fromMe) return;  // Ignore messages sent by the bot itself
 
-  // Conectando ao WhatsApp
-  await conn.connect();
+        // Aqui você pode processar as mensagens recebidas, por exemplo, enviar um e-mail com a mensagem
+        await sendEmail(m.messages[0].message.conversation);
+    });
 }
 
-startBot().catch((err) => console.log(err));
+async function sendEmail(message) {
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: 'u1024025@gmail.com',  // Substitua com seu e-mail
+            pass: 'netinho123'  // Substitua com sua senha ou senha de app
+        }
+    });
+
+    let info = await transporter.sendMail({
+        from: 'u1024025@gmail.com',
+        to: 'netopc53@gmail.com',  // Substitua com o e-mail de destino
+        subject: 'Nova mensagem do WhatsApp',
+        text: message
+    });
+
+    console.log('Email enviado:', info.messageId);
+}
+
+// Inicia o bot
+startBot().catch(err => console.error(err));
