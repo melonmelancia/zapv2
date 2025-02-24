@@ -1,16 +1,13 @@
 {
   "name": "zapv2",
   "version": "1.0.0",
-  "description": "",
+  "description": "WhatsApp bot using Baileys",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^2.3000.1019707846",
-    "dotenv": "^10.0.0"
-  },
-  "devDependencies": {},
-  "author": "",
-  "license": "ISC"
+    "@whiskeysockets/baileys": "latest",
+    "dotenv": "^16.0.0"
+  }
 }
