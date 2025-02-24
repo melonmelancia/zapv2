@@ -1,10 +1,15 @@
-const { WAConnection, MessageType } = require('@adiwajshing/baileys');
+const { makeWASocket, useSingleFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-const authPath = path.resolve('./auth_info');
+// Caminho para o arquivo de autenticação
+const authPath = path.resolve('./auth_info.json');
+
+// Carrega o estado de autenticação (se existir) ou cria um novo
+const { state, saveCreds } = useSingleFileAuthState(authPath);
+
 const email = process.env.EMAIL; // Seu e-mail para autenticação
 const password = process.env.PASSWORD; // Senha ou senha de app
 const destinatario = process.env.EMAIL_DESTINATARIO; // E-mail do destinatário
@@ -12,11 +17,13 @@ const destinatario = process.env.EMAIL_DESTINATARIO; // E-mail do destinatário
 async function startBot() {
   try {
     console.log('Iniciando o bot...');
-    
-    const conn = new WAConnection();
 
-    // Lê os dados de autenticação ou cria se não existirem
-    conn.loadAuthInfo(authPath);
+    // Criação da conexão usando makeWASocket
+    const conn = makeWASocket({
+      auth: state, // Usando o estado de autenticação
+    });
+
+    conn.ev.on('creds.update', saveCreds); // Atualiza as credenciais sempre que houver mudanças
 
     conn.on('open', () => {
       console.log('Conectado com sucesso!');
@@ -30,6 +37,7 @@ async function startBot() {
       const msg = message.message;
       console.log('Mensagem recebida: ', msg);
 
+      // Exemplo de resposta automatizada
       if (msg.conversation === 'oi') {
         await conn.sendMessage(message.key.remoteJid, 'Olá! Como posso te ajudar?');
       }
