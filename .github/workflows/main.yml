@@ -13,25 +13,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      # Passo 2: Instalar a versão mais recente do npm
+      # Passo 2: Configurar Node.js (versão 20 ou superior)
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '14'  # Defina a versão do Node.js de acordo com sua necessidade
+          node-version: '20'  # Defina para a versão mais recente compatível com o npm 11.x
 
+      # Passo 3: Instalar dependências
       - name: Install npm dependencies
         run: |
-          npm install -g npm  # Garantir que estamos utilizando a versão mais recente do npm
-          rm -rf node_modules package-lock.json  # Remover node_modules e package-lock.json
-          npm install  # Gerar novo package-lock.json
+          npm install  # Este passo instalará as dependências do projeto
 
-      # Passo 3: Rodar o bot
+      # Passo 4: Rodar o bot
       - name: Run the bot
         run: node bot.js
 
-      # Passo 4: (Opcional) Fazer upload do QR Code ou outro arquivo, se necessário
+      # Passo 5: (Opcional) Fazer upload do QR Code ou outro arquivo, se necessário
       - name: Upload QR Code
-        uses: actions/upload-artifact@v4  # Certifique-se de estar usando a versão mais recente
+        uses: actions/upload-artifact@v4
         with:
           name: qr_code_image
           path: qr_code.png
