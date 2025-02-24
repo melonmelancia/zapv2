@@ -8,8 +8,18 @@
   },
   "dependencies": {
     "@adiwajshing/baileys": "^5.0.0",
+    "@whiskeysockets/baileys": "^6.7.13",
     "dotenv": "^10.0.0"
   },
   "author": "Seu Nome",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/melonmelancia/zapv2.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/melonmelancia/zapv2/issues"
+  },
+  "homepage": "https://github.com/melonmelancia/zapv2#readme"
 }
