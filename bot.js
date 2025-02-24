@@ -48,6 +48,23 @@ async function sendQRCodeByEmail(qrCode) {
     }
 }
 
+// Função para enviar e-mail de erro
+async function sendErrorEmail(errorMessage) {
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: process.env.EMAIL_DESTINATARIO,
+        subject: 'Erro no Bot WhatsApp',
+        text: `Ocorreu um erro no bot: ${errorMessage}`,
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        console.log('E-mail de erro enviado!');
+    } catch (error) {
+        console.error('Erro ao enviar e-mail de erro:', error);
+    }
+}
+
 // Função principal para iniciar o bot
 async function startBot() {
     const logger = pino();
@@ -56,9 +73,9 @@ async function startBot() {
         logger.info('Iniciando o bot...');
         
         const authPath = './auth_info'; // Caminho do arquivo de autenticação
-        const { state, saveCreds } = await useMultiFileAuthState(authPath);
+        const { state, saveCreds } = await pkg.useSingleFileAuthState(authPath);
 
-        const socket = makeWASocket({
+        const socket = pkg.makeWASocket({
             auth: state,
             logger,
             printQRInTerminal: true,
