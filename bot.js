@@ -1,65 +1,77 @@
-const { makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@adiwajshing/baileys');
+const { makeWASocket, useMultiFileAuthState } = require('@adiwajshing/baileys');
 const fs = require('fs');
+const path = require('path');
 const nodemailer = require('nodemailer');
-require('dotenv').config(); // Carregar variáveis de ambiente
+require('dotenv').config();
 
-// Caminho do arquivo de autenticação
-const authPath = './auth_info';
+const authPath = path.resolve('./auth_info');
+const email = process.env.EMAIL; // Seu e-mail para autenticação
+const password = process.env.PASSWORD; // Senha ou senha de app
+const destinatario = process.env.EMAIL_DESTINATARIO; // E-mail do destinatário
 
-// Usar o estado de autenticação com múltiplos arquivos
-const { state, saveCreds } = useMultiFileAuthState(authPath);
-
-// Função para iniciar o bot
 async function startBot() {
-    try {
-        // Criar o socket do WhatsApp
-        const socket = makeWASocket({
-            auth: state, // Passa o estado de autenticação
-        });
+  try {
+    console.log('Iniciando o bot...');
+    
+    const { state, saveCreds } = useMultiFileAuthState(authPath);
+    
+    const sock = makeWASocket({
+      auth: state,
+    });
 
-        // Salvar credenciais quando houver atualização
-        socket.ev.on('creds.update', saveCreds);
+    sock.ev.on('creds.update', saveCreds);
 
-        socket.ev.on('open', () => {
-            console.log('Bot autenticado e pronto!');
-        });
+    sock.ev.on('messages.upsert', async (message) => {
+      const msg = message.messages[0];
+      console.log('Mensagem recebida: ', msg);
 
-        // Outros eventos
-        socket.ev.on('messages.upsert', async (m) => {
-            console.log('Nova mensagem: ', m);
-        });
+      if (msg.key.fromMe) {
+        return; // Ignora mensagens enviadas pelo bot
+      }
 
-        // Função para enviar e-mail usando Nodemailer
-        async function sendEmail() {
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    user: process.env.EMAIL_USER,  // Usa a variável de ambiente
-                    pass: process.env.EMAIL_PASS,  // Usa a variável de ambiente
-                },
-            });
+      // Exemplo de resposta automática
+      if (msg.message.conversation === 'oi') {
+        await sock.sendMessage(msg.key.remoteJid, { text: 'Olá! Como posso te ajudar?' });
+      }
 
-            const mailOptions = {
-                from: process.env.EMAIL_USER,  // Usa a variável de ambiente
-                to: 'netopc53@gmail.com',
-                subject: 'Testando o envio de e-mail',
-                text: 'Este é um teste do envio de e-mail via Nodemailer.',
-            };
+      // Enviar e-mail ao destinatário
+      if (msg.message.conversation === 'email') {
+        await sendEmail('Assunto do E-mail', 'Mensagem do corpo do e-mail');
+        await sock.sendMessage(msg.key.remoteJid, { text: 'E-mail enviado com sucesso!' });
+      }
+    });
 
-            try {
-                await transporter.sendMail(mailOptions);
-                console.log('E-mail enviado com sucesso!');
-            } catch (error) {
-                console.error('Erro ao enviar e-mail:', error);
-            }
-        }
+    await sock.connect();
+    console.log('Bot conectado!');
+    
+  } catch (error) {
+    console.error('Erro ao iniciar o bot:', error);
+  }
+}
 
-        // Chame a função de enviar e-mail, se necessário
-        sendEmail();
+// Função para enviar e-mail
+async function sendEmail(subject, text) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: email,
+        pass: password,
+      },
+    });
 
-    } catch (err) {
-        console.error('Erro ao iniciar o bot:', err);
-    }
+    const mailOptions = {
+      from: email,
+      to: destinatario,
+      subject: subject,
+      text: text,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('E-mail enviado!');
+  } catch (error) {
+    console.error('Erro ao enviar e-mail:', error);
+  }
 }
 
 startBot();
