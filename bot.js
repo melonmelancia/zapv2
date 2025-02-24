@@ -73,7 +73,8 @@ async function startBot() {
         logger.info('Iniciando o bot...');
 
         const authPath = './auth_info'; // Caminho do arquivo de autenticação
-        const { state, saveCreds } = await pkg.useSingleFileAuthState(authPath);
+
+        const { state, saveCreds } = await pkg.useMultiFileAuthState(authPath);
 
         const socket = pkg.makeWASocket({
             auth: state,
