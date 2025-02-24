@@ -1,85 +1,65 @@
+// Importa os pacotes necessários
+const { default: makeWASocket, useSingleFileAuthState } = require('@adiwajshing/baileys');
 const fs = require('fs');
-const { makeWASocket, useSingleFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = require('@adiwajshing/baileys');
-const qrcode = require('qrcode-terminal');
-require('dotenv').config();  // Carregar variáveis do .env
 const nodemailer = require('nodemailer');
+require('dotenv').config(); // Carrega as variáveis de ambiente
 
 // Caminho do arquivo de autenticação
 const authPath = './auth_info.json';
 
-// Função para enviar e-mail
-async function sendEmail(subject, text) {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,  // Usando variáveis de ambiente
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+// Cria ou carrega o estado de autenticação
+const { state, saveCreds } = useSingleFileAuthState(authPath);
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_DEST,
-    subject: subject,
-    text: text,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log('Email enviado com sucesso!');
-  } catch (error) {
-    console.error('Erro ao enviar o e-mail:', error);
-  }
-}
-
-// Função principal para inicializar o bot
+// Função para iniciar o bot
 async function startBot() {
-  const { version } = await fetchLatestBaileysVersion();
-  console.log(`Usando a versão ${version} do Baileys, mais recente: ${version === 'latest'}`);
+    try {
+        const socket = makeWASocket({
+            auth: state, // Passa o estado de autenticação
+        });
 
-  // Carregar o estado de autenticação
-  const { state, saveCreds } = useSingleFileAuthState(authPath);
+        // Salvando credenciais após a autenticação
+        socket.ev.on('creds.update', saveCreds);
 
-  const socket = makeWASocket({
-    auth: state,
-    printQRInTerminal: true,
-    version: [2, 2243, 7],  // Usando versão específica
-  });
+        socket.ev.on('open', () => {
+            console.log('Bot autenticado e pronto!');
+        });
 
-  socket.ev.on('creds.update', saveCreds);  // Salva as credenciais quando necessário
+        // Outras configurações do bot, por exemplo, escutando mensagens
+        socket.ev.on('messages.upsert', async (m) => {
+            console.log('Nova mensagem: ', m);
+        });
 
-  socket.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
+        // Função para enviar e-mail, usando variáveis de ambiente
+        async function sendEmail() {
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.EMAIL_USER,  // Usa a variável de ambiente
+                    pass: process.env.EMAIL_PASS,  // Usa a variável de ambiente
+                },
+            });
 
-    if (connection === 'close') {
-      const shouldReconnect = (lastDisconnect.error.output?.statusCode === DisconnectReason.loggedOut);
-      console.log('Conexão fechada, reconectando...', shouldReconnect);
+            const mailOptions = {
+                from: process.env.EMAIL_USER, // Usa a variável de ambiente
+                to: 'netopc53@gmail.com',
+                subject: 'Testando o envio de e-mail',
+                text: 'Este é um teste do envio de e-mail via Nodemailer.',
+            };
 
-      if (shouldReconnect) {
-        startBot();  // Reconnecta automaticamente se a sessão for encerrada
-      }
-    } else if (connection === 'open') {
-      console.log('Conexão com o WhatsApp aberta!');
+            try {
+                await transporter.sendMail(mailOptions);
+                console.log('E-mail enviado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao enviar e-mail:', error);
+            }
+        }
+
+        // Chame a função de enviar e-mail, se necessário
+        sendEmail();
+
+    } catch (err) {
+        console.error('Erro ao iniciar o bot:', err);
     }
-  });
-
-  socket.ev.on('messages.upsert', async (message) => {
-    const msg = message.messages[0];
-    if (!msg.key.fromMe && msg.message.conversation) {
-      const userMessage = msg.message.conversation.trim();
-      console.log(`Mensagem recebida: ${userMessage}`);
-
-      if (userMessage.toLowerCase() === 'envie o relatório') {
-        console.log('Enviando relatório por e-mail...');
-        await sendEmail('Relatório de Atividades', 'Aqui está o relatório solicitado.');
-      }
-    }
-  });
-
-  socket.connect();
 }
 
-// Iniciar o bot
-startBot().catch((error) => {
-  console.error('Erro ao iniciar o bot:', error);
-});
+startBot();
