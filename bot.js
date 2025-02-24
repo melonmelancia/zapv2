@@ -1,83 +1,37 @@
-const { makeWASocket, useSingleFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
-const nodemailer = require('nodemailer');
-require('dotenv').config();
 
-// Caminho para o arquivo de autenticação
-const authPath = path.resolve('./auth_info.json');
+// Configurações
+const authPath = path.join(__dirname, 'auth_info'); // Caminho onde os dados de autenticação serão armazenados
 
-// Carrega o estado de autenticação (se existir) ou cria um novo
-const { state, saveCreds } = useSingleFileAuthState(authPath);
-
-const email = process.env.EMAIL; // Seu e-mail para autenticação
-const password = process.env.PASSWORD; // Senha ou senha de app
-const destinatario = process.env.EMAIL_DESTINATARIO; // E-mail do destinatário
-
+// Função para inicializar o bot
 async function startBot() {
-  try {
-    console.log('Iniciando o bot...');
+  console.log('Iniciando o bot...');
+  
+  // Configuração para autenticação
+  const { state, saveCreds } = await useMultiFileAuthState(authPath);
 
-    // Criação da conexão usando makeWASocket
-    const conn = makeWASocket({
-      auth: state, // Usando o estado de autenticação
-    });
+  // Criação da conexão do WhatsApp
+  const sock = makeWASocket({
+    auth: state,
+    printQRInTerminal: true, // Exibe o QR code no terminal
+    logger: pino({ level: 'trace' }) // Para depuração
+  });
 
-    conn.ev.on('creds.update', saveCreds); // Atualiza as credenciais sempre que houver mudanças
+  // Salvando as credenciais
+  sock.ev.on('creds.update', saveCreds);
 
-    conn.on('open', () => {
-      console.log('Conectado com sucesso!');
-    });
+  sock.ev.on('messages.upsert', async (m) => {
+    console.log('Mensagem recebida:', m);
+    // Adicione aqui a lógica para responder a mensagens ou interagir
+  });
 
-    conn.on('qr', qr => {
-      console.log('Escaneie o código QR:', qr);
-    });
-
-    conn.on('message-new', async (message) => {
-      const msg = message.message;
-      console.log('Mensagem recebida: ', msg);
-
-      // Exemplo de resposta automatizada
-      if (msg.conversation === 'oi') {
-        await conn.sendMessage(message.key.remoteJid, 'Olá! Como posso te ajudar?');
-      }
-
-      // Enviar e-mail ao destinatário
-      if (msg.conversation === 'email') {
-        await sendEmail('Assunto do E-mail', 'Mensagem do corpo do e-mail');
-        await conn.sendMessage(message.key.remoteJid, 'E-mail enviado com sucesso!');
-      }
-    });
-
-    await conn.connect();
-  } catch (error) {
-    console.error('Erro ao iniciar o bot:', error);
-  }
+  // Conectando ao WhatsApp
+  await sock.connect();
 }
 
-// Função para enviar e-mail
-async function sendEmail(subject, text) {
-  try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: email,
-        pass: password,
-      },
-    });
-
-    const mailOptions = {
-      from: email,
-      to: destinatario,
-      subject: subject,
-      text: text,
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log('E-mail enviado!');
-  } catch (error) {
-    console.error('Erro ao enviar e-mail:', error);
-  }
-}
-
-startBot();
+// Iniciar o bot
+startBot().catch((err) => {
+  console.error('Erro ao iniciar o bot:', err);
+});
