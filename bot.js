@@ -1,16 +1,17 @@
-const { default: makeWASocket, fetchLatestBaileysVersion, DisconnectReason, MessageType, useSingleFileAuthState } = require('@adiwajshing/baileys');
+const { makeWASocket, fetchLatestBaileysVersion, useAuthState, DisconnectReason, MessageType } = require('@adiwajshing/baileys');
 const fs = require('fs');
 
-// Define o caminho para o arquivo de autenticação
+// Caminho para o arquivo de autenticação
 const authFile = './auth_info.json';
 
 async function start() {
-    const { state, saveState } = useSingleFileAuthState(authFile);
+    // Usa o estado de autenticação a partir do arquivo
+    const { state, saveState } = useAuthState(authFile);
 
     // Cria a conexão com o WhatsApp
     const sock = makeWASocket({
-        printQRInTerminal: true,
-        auth: state
+        auth: state,
+        printQRInTerminal: true
     });
 
     sock.ev.on('connection.update', (update) => {
