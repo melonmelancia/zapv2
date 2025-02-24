@@ -17,6 +17,14 @@ async function startBot() {
     // Usa o estado de autenticação com a função useMultiFileAuthState
     const { state, saveCreds } = useMultiFileAuthState(authPath);
 
+    // Verifica se o estado de autenticação foi carregado corretamente
+    if (!state) {
+        console.log("Erro: Não foi possível carregar o estado de autenticação.");
+        return;
+    }
+
+    console.log("Autenticação carregada com sucesso.");
+
     // Inicializa o socket com a autenticação
     const sock = makeWASocket({
         printQRInTerminal: true,
@@ -54,14 +62,14 @@ async function sendEmail(message) {
     let transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-            user: 'u1024025@gmail.com',  // Substitua com seu e-mail
-            pass: 'netinho123'  // Substitua com sua senha ou senha de app
+            user: 'u1024025@gmail.com',  // Seu e-mail
+            pass: 'netinho123'           // Sua senha
         }
     });
 
     let info = await transporter.sendMail({
-        from: 'u1024025@gmail.com',
-        to: 'netopc53@gmail.com',  // Substitua com o e-mail de destino
+        from: 'u1024025@gmail.com',             // Seu e-mail
+        to: 'netopc53@gmail.com',              // E-mail de destino
         subject: 'Nova mensagem do WhatsApp',
         text: message
     });
