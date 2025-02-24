@@ -1,17 +1,17 @@
-const { makeWASocket, fetchLatestBaileysVersion, useSingleFileAuthState, DisconnectReason, MessageType } = require('@adiwajshing/baileys');
+const { makeWASocket, useSingleFileAuthState, DisconnectReason, MessageType } = require('@adiwajshing/baileys');
 const fs = require('fs');
 
 // Caminho para o arquivo de autenticação
 const authFile = './auth_info.json';
 
 async function start() {
-    // Usa o estado de autenticação a partir do arquivo
-    const { state, saveState } = useSingleFileAuthState(authFile);
+    // Verifica se o arquivo de autenticação existe
+    const state = fs.existsSync(authFile) ? require(authFile) : undefined;
 
     // Cria a conexão com o WhatsApp
     const sock = makeWASocket({
-        auth: state,
-        printQRInTerminal: true
+        auth: state,  // Usa o estado de autenticação (caso exista)
+        printQRInTerminal: true,
     });
 
     sock.ev.on('connection.update', (update) => {
@@ -27,8 +27,10 @@ async function start() {
         }
     });
 
-    // Atualiza o estado de autenticação
-    sock.ev.on('auth-state.update', saveState);
+    // Atualiza o estado de autenticação ao longo do tempo
+    sock.ev.on('auth-state.update', (authState) => {
+        fs.writeFileSync(authFile, JSON.stringify(authState, null, 2));
+    });
 
     // Aguarda a leitura do QR Code ou autenticação
     await sock.connect();
