@@ -1,13 +1,16 @@
-const { makeWASocket, useSingleFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
-const { Boom } = require('@hapi/boom');
-const fs = require('fs');
-const pino = require('pino');
-const nodemailer = require('nodemailer');
+import { makeWASocket, useSingleFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
+import pino from 'pino';
+import fs from 'fs';
 
-// Configuração de logging
+// Carregar variáveis de ambiente do arquivo .env
+dotenv.config();
+
+// Configurar o logger
 const logger = pino({ level: 'info' });
 
-// Caminho do arquivo de autenticação
+// Caminho para o arquivo de autenticação
 const authPath = './auth_info.json';
 
 // Função para enviar notificação por email
@@ -31,53 +34,64 @@ const sendEmailNotification = async (message) => {
     await transporter.sendMail(mailOptions);
     logger.info('Notificação de email enviada com sucesso');
   } catch (error) {
-    // Capturando mais detalhes do erro
     logger.error('Erro ao enviar notificação de email:', error);
-    logger.error('Detalhes do erro:', error.message);
+    if (error.response) {
+      logger.error('Detalhes da resposta de erro:', error.response);
+    } else if (error.message) {
+      logger.error('Mensagem de erro:', error.message);
+    }
   }
 };
 
 // Função para iniciar o bot
 const startBot = async () => {
   logger.info('Iniciando o bot...');
-  
-  // Verificando o estado de autenticação
-  const { state, saveCreds } = useSingleFileAuthState(authPath);
 
-  const sock = makeWASocket({
-    printQRInTerminal: true,
-    auth: state,
-  });
+  // Verificar se o arquivo de autenticação existe
+  if (!fs.existsSync(authPath)) {
+    logger.error('Arquivo de autenticação não encontrado.');
+    await sendEmailNotification('Erro: Arquivo de autenticação não encontrado.');
+    return;
+  }
 
-  // Conectar ao WhatsApp
-  sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === 'close') {
-      const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      if (reason === DisconnectReason.loggedOut) {
-        logger.info('Bot foi desconectado e deslogado!');
-        sendEmailNotification('Bot foi desconectado e deslogado!');
-      } else {
-        logger.info('Bot desconectado!');
-        sendEmailNotification('Bot foi desconectado!');
+  try {
+    // Usando a função de estado de autenticação do Baileys
+    const { state, saveCreds } = useSingleFileAuthState(authPath);
+
+    // Criar a instância do socket do Baileys
+    const socket = makeWASocket({
+      auth: state,
+      printQRInTerminal: true,
+      logger: pino({ level: 'debug' }),
+      connectTimeoutMs: 10000,
+    });
+
+    socket.ev.on('connection.update', (update) => {
+      const { connection, lastDisconnect } = update;
+
+      if (connection === 'close') {
+        if (lastDisconnect?.error?.output?.statusCode !== 401) {
+          logger.info('Reconectando...');
+          startBot();
+        }
       }
-    }
-  });
 
-  // Exemplo de evento de mensagem
-  sock.ev.on('messages.upsert', (m) => {
-    logger.info(m);
-  });
+      if (connection === 'open') {
+        logger.info('Conectado ao WhatsApp com sucesso!');
+        sendEmailNotification('Bot WhatsApp conectado com sucesso!');
+      }
+    });
 
-  // Salvar credenciais de autenticação
-  sock.ev.on('creds.update', saveCreds);
+    socket.ev.on('messages.upsert', (msg) => {
+      logger.info('Mensagem recebida:', msg);
+      // A lógica de processamento de mensagens vai aqui
+    });
 
-  // Aguardar conexão
-  await sock.connect();
+  } catch (error) {
+    logger.error('Erro ao iniciar o bot:', error);
+    await sendEmailNotification('Erro ao iniciar o bot: ' + error.message);
+  }
 };
 
-// Chamada da função para iniciar o bot
-startBot().catch((err) => {
-  logger.error('Erro ao iniciar o bot:', err);
-  sendEmailNotification(`Erro ao iniciar o bot: ${err.message}`);
-});
+// Iniciar o bot
+startBot();
