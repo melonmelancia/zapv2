@@ -15,9 +15,9 @@ jobs:
     steps:
       # Checkout do código
       - name: Checkout code
-        uses: actions/checkout@v3  # Usando a versão mais recente do checkout
+        uses: actions/checkout@v3
 
-      # Configuração do Git para GitHub Actions
+      # Configuração do Git para o GitHub Actions
       - name: Set up Git for GitHub Actions
         run: |
           git config --global user.name "github-actions"
@@ -33,7 +33,7 @@ jobs:
         run: |
           git add package-lock.json
           git commit -m "Update package-lock.json" || echo "No changes to commit"
-          git push origin main  # Garantindo o push para o branch correto
+          git push origin main
 
       # Executa o bot.js
       - name: Run bot.js
