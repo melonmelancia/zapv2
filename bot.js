@@ -1,37 +1,81 @@
-const { makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
-const fs = require('fs');
-const path = require('path');
+const { useSingleFileAuthState, makeWASocket } = require('@whiskeysockets/baileys');
+const dotenv = require('dotenv');
+const nodemailer = require('nodemailer');
+const pino = require('pino');  // Importando o pino para logs
 
-// Configurações
-const authPath = path.join(__dirname, 'auth_info'); // Caminho onde os dados de autenticação serão armazenados
+// Configurar dotenv
+dotenv.config();
 
-// Função para inicializar o bot
-async function startBot() {
-  console.log('Iniciando o bot...');
-  
-  // Configuração para autenticação
-  const { state, saveCreds } = await useMultiFileAuthState(authPath);
+// Inicializando o logger
+const logger = pino();
 
-  // Criação da conexão do WhatsApp
-  const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: true, // Exibe o QR code no terminal
-    logger: pino({ level: 'trace' }) // Para depuração
+// Caminho do arquivo de autenticação
+const authPath = './auth_info.json'; 
+
+// Função principal para iniciar o bot
+const startBot = async () => {
+  logger.info('Iniciando o bot...');
+
+  try {
+    // Carregar estado de autenticação
+    const { state, saveCreds } = useSingleFileAuthState(authPath);
+
+    // Criar a conexão com o WhatsApp
+    const sock = makeWASocket({
+      auth: state,
+    });
+
+    // Salvar as credenciais ao atualizar
+    sock.ev.on('creds.update', saveCreds);
+    
+    // Monitorar a conexão
+    sock.ev.on('connection.update', (update) => {
+      const { connection, lastDisconnect } = update;
+
+      // Se a conexão for fechada, tentar reconectar
+      if (connection === 'close') {
+        if (lastDisconnect?.error?.output?.statusCode !== 401) {
+          logger.info('Conexão perdida, tentando reconectar...');
+          startBot();  // Tentar reconectar
+        } else {
+          logger.info('Conexão encerrada.');
+        }
+      }
+    });
+
+    logger.info('Bot iniciado com sucesso');
+
+  } catch (error) {
+    logger.error('Erro ao iniciar o bot:', error);
+  }
+};
+
+// Enviar email quando o bot estiver ativo
+const sendEmailNotification = async () => {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
   });
 
-  // Salvando as credenciais
-  sock.ev.on('creds.update', saveCreds);
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: process.env.EMAIL_DEST,
+    subject: 'Notificação do Bot WhatsApp',
+    text: 'O bot WhatsApp foi iniciado com sucesso.',
+  };
 
-  sock.ev.on('messages.upsert', async (m) => {
-    console.log('Mensagem recebida:', m);
-    // Adicione aqui a lógica para responder a mensagens ou interagir
-  });
+  try {
+    await transporter.sendMail(mailOptions);
+    logger.info('Notificação de email enviada com sucesso');
+  } catch (error) {
+    logger.error('Erro ao enviar notificação de email:', error);
+  }
+};
 
-  // Conectando ao WhatsApp
-  await sock.connect();
-}
-
-// Iniciar o bot
-startBot().catch((err) => {
-  console.error('Erro ao iniciar o bot:', err);
+// Iniciar o bot e enviar email de notificação
+startBot().then(() => {
+  sendEmailNotification();
 });
