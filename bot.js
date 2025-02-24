@@ -1,38 +1,41 @@
 // Importa a biblioteca Baileys
-const { WAConnection, MessageType, Mimetype } = require('@adiwajshing/baileys');
+const { makeWASocket, useSingleFileAuthState, DisconnectReason, fetchLatestBaileysVersion, MessageType } = require('@adiwajshing/baileys');
+const fs = require('fs');
 
 // Função para iniciar o bot
 async function start() {
-    const conn = new WAConnection();  // Cria a conexão com o WhatsApp
+    // Carrega ou cria as credenciais de autenticação
+    const { state, saveState } = useSingleFileAuthState('./auth_info.json');
 
-    // Quando o QR code for gerado, exibe no console para escanear
-    conn.on('qr', (qr) => {
-        console.log('Escaneie o código QR abaixo para conectar:');
-        console.log(qr);
+    // Cria a conexão com o WhatsApp
+    const sock = makeWASocket({
+        printQRInTerminal: true,
+        auth: state
     });
 
-    // Quando a conexão for aberta, envia uma mensagem indicando que está conectado
-    conn.on('open', () => {
-        console.log('Conectado ao WhatsApp!');
+    // Quando a conexão for aberta, exibe a mensagem
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut;
+            console.log('Conexão fechada. Tentando reconectar...', shouldReconnect);
+            if (shouldReconnect) {
+                start(); // Tenta reconectar
+            }
+        } else if (connection === 'open') {
+            console.log('Conectado ao WhatsApp!');
+        }
     });
 
-    // Define os detalhes da conta do WhatsApp (se necessário)
-    conn.loadAuthInfo('./auth_info.json');  // Carrega as credenciais de autenticação se existirem
+    // Salvando as credenciais de autenticação quando a conexão for fechada
+    sock.ev.on('auth-state.update', saveState);
 
-    // Faz a conexão com o WhatsApp
-    await conn.connect();
-
-    // Salvando as credenciais de autenticação para evitar ter que escanear o QR novamente
-    conn.on('close', () => {
-        console.log('Conexão fechada. Salvando as informações de autenticação...');
-        const authInfo = conn.base64EncodedAuthInfo();
-        require('fs').writeFileSync('./auth_info.json', JSON.stringify(authInfo));
-    });
-
-    // Exemplo de envio de mensagem
-    const to = '557591804307@c.us';  // Número do destinatário no formato internacional
+    // Enviar uma mensagem
+    const to = 'numero_de_telefone_do_destinatario@c.us';  // Número do destinatário no formato internacional
     const message = 'Olá, esta é uma mensagem automática enviada pelo bot!';
-    await conn.sendMessage(to, message, MessageType.text);  // Envia uma mensagem de texto
+    await sock.sendMessage(to, { text: message });
+
+    console.log('Mensagem enviada com sucesso!');
 }
 
 // Inicia o bot
