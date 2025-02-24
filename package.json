@@ -1,21 +1,19 @@
 {
   "name": "zap-bot",
   "version": "1.0.0",
-  "description": "Bot do WhatsApp usando Baileys e Nodemailer",
+  "description": "Bot para WhatsApp utilizando Baileys",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.13",  
-    "nodemailer": "^6.7.0",  
-    "dotenv": "^16.0.0",  
-    "qrcode-terminal": "^0.12.0"  
+    "@whiskeysockets/baileys": "^6.7.13",  // Versão mais recente do Baileys
+    "dotenv": "^16.0.3",  // Para ler variáveis de ambiente
+    "nodemailer": "^6.7.0",  // Para envio de emails
+    "pino": "^8.5.0"  // Para log
   },
   "devDependencies": {},
   "engines": {
-    "node": ">=14.0.0"
-  },
-  "author": "",
-  "license": "ISC"
+    "node": ">=16.0.0"
+  }
 }
