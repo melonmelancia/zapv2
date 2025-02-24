@@ -1,4 +1,4 @@
-const { makeWASocket, useSingleFileAuthState, DisconnectReason, MessageType } = require('@adiwajshing/baileys');
+const { makeWASocket } = require('@adiwajshing/baileys');
 const fs = require('fs');
 
 // Caminho para o arquivo de autenticação
