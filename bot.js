@@ -30,7 +30,7 @@ async function start() {
     });
 
     // Exemplo de envio de mensagem
-    const to = 'numero_de_telefone_do_destinatario@c.us';  // Número do destinatário no formato internacional
+    const to = '557591804307@c.us';  // Número do destinatário no formato internacional
     const message = 'Olá, esta é uma mensagem automática enviada pelo bot!';
     await conn.sendMessage(to, message, MessageType.text);  // Envia uma mensagem de texto
 }
