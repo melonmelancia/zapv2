@@ -4,42 +4,48 @@ dotenv.config();
 
 // Função para iniciar o bot
 async function startBot() {
-  // Usar multi-auth para carregar a sessão salva
-  const { state, saveCreds } = await useMultiFileAuthState('session'); // 'session' é o diretório onde a sessão será salva
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState('session'); // 'session' é o diretório onde a sessão será salva
 
-  const sock = makeWASocket({
-    auth: state,
-  });
+    console.log('Sessão carregada:', state); // Verifique se o estado da sessão está sendo carregado
 
-  sock.ev.on('connection.update', (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === 'close') {
-      const reason = lastDisconnect?.error?.output?.statusCode;
-      if (reason === DisconnectReason.loggedOut) {
-        console.log('Você foi desconectado. Realizando nova autenticação...');
-        startBot();  // Recria a conexão caso haja desconexão
+    const sock = makeWASocket({
+      auth: state,
+    });
+
+    sock.ev.on('connection.update', (update) => {
+      const { connection, lastDisconnect } = update;
+      console.log('Conexão atual:', connection); // Log do status da conexão
+      if (connection === 'close') {
+        const reason = lastDisconnect?.error?.output?.statusCode;
+        if (reason === DisconnectReason.loggedOut) {
+          console.log('Você foi desconectado. Realizando nova autenticação...');
+          startBot();  // Recria a conexão caso haja desconexão
+        }
       }
-    }
-  });
+    });
 
-  // Evento quando a conexão for estabelecida
-  sock.ev.on('open', () => {
-    console.log('Bot conectado com sucesso!');
-  });
+    // Evento quando a conexão for estabelecida
+    sock.ev.on('open', () => {
+      console.log('Bot conectado com sucesso!');
+    });
 
-  // Lidar com mensagens recebidas
-  sock.ev.on('messages.upsert', async (message) => {
-    const { messages } = message;
-    if (messages && messages.length > 0) {
-      const messageContent = messages[0];
-      console.log(`Mensagem recebida: ${messageContent.message.conversation}`);
+    // Lidar com mensagens recebidas
+    sock.ev.on('messages.upsert', async (message) => {
+      const { messages } = message;
+      if (messages && messages.length > 0) {
+        const messageContent = messages[0];
+        console.log(`Mensagem recebida: ${messageContent.message.conversation}`);
 
-      // Responder a mensagem recebida
-      await sock.sendMessage(messageContent.key.remoteJid, {
-        text: `Você disse: ${messageContent.message.conversation}`,
-      });
-    }
-  });
+        // Responder a mensagem recebida
+        await sock.sendMessage(messageContent.key.remoteJid, {
+          text: `Você disse: ${messageContent.message.conversation}`,
+        });
+      }
+    });
+  } catch (err) {
+    console.error('Erro ao iniciar o bot:', err);
+  }
 }
 
 // Iniciar o bot
