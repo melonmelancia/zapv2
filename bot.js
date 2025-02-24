@@ -1,16 +1,22 @@
 // Importa a biblioteca Baileys
-const { makeWASocket, useSingleFileAuthState, DisconnectReason, fetchLatestBaileysVersion, MessageType } = require('@adiwajshing/baileys');
+const { makeWASocket, fetchLatestBaileysVersion, DisconnectReason, MessageType } = require('@adiwajshing/baileys');
 const fs = require('fs');
+
+// Caminho para o arquivo de autenticação
+const authFile = './auth_info.json';
 
 // Função para iniciar o bot
 async function start() {
-    // Carrega ou cria as credenciais de autenticação
-    const { state, saveState } = useSingleFileAuthState('./auth_info.json');
+    // Verifica se o arquivo de autenticação existe
+    let authState = {};
+    if (fs.existsSync(authFile)) {
+        authState = JSON.parse(fs.readFileSync(authFile));
+    }
 
     // Cria a conexão com o WhatsApp
     const sock = makeWASocket({
         printQRInTerminal: true,
-        auth: state
+        auth: authState
     });
 
     // Quando a conexão for aberta, exibe a mensagem
@@ -27,8 +33,10 @@ async function start() {
         }
     });
 
-    // Salvando as credenciais de autenticação quando a conexão for fechada
-    sock.ev.on('auth-state.update', saveState);
+    // Salva o estado de autenticação no arquivo
+    sock.ev.on('auth-state.update', (auth) => {
+        fs.writeFileSync(authFile, JSON.stringify(auth));
+    });
 
     // Enviar uma mensagem
     const to = 'numero_de_telefone_do_destinatario@c.us';  // Número do destinatário no formato internacional
