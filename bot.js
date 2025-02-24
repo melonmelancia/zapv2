@@ -9,17 +9,21 @@ if (!existsSync(authPath)) {
     mkdirSync(authPath); // Cria o diretório se não existir
 }
 
-const { state, saveCreds } = useMultiFileAuthState(authPath);
-
 async function startBot() {
+    // Tenta buscar a versão mais recente do Baileys
     const { version, isLatest } = await fetchLatestBaileysVersion();
     console.log(`Usando a versão ${version} do Baileys, mais recente: ${isLatest}`);
-    
+
+    // Usa o estado de autenticação com a função useMultiFileAuthState
+    const { state, saveCreds } = useMultiFileAuthState(authPath);
+
+    // Inicializa o socket com a autenticação
     const sock = makeWASocket({
         printQRInTerminal: true,
-        auth: state  // Passa o estado de autenticação
+        auth: state // Passa o estado de autenticação
     });
 
+    // Acompanhar o estado de conexão
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
@@ -33,8 +37,10 @@ async function startBot() {
         }
     });
 
-    sock.ev.on('creds.update', saveCreds);  // Salva as credenciais
+    // Salvar credenciais sempre que forem atualizadas
+    sock.ev.on('creds.update', saveCreds);
 
+    // Processar mensagens recebidas
     sock.ev.on('messages.upsert', async (m) => {
         console.log('Received message:', m);
         if (m.messages[0].key.fromMe) return;  // Ignore messages from the bot itself
