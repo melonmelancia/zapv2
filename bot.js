@@ -1,4 +1,4 @@
-const { makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = require('@adiwajshing/baileys');
+const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason } = require('@adiwajshing/baileys');
 const { existsSync, mkdirSync } = require('fs');
 const { join } = require('path');
 const nodemailer = require('nodemailer');
@@ -13,6 +13,8 @@ const { state, saveCreds } = useMultiFileAuthState(authPath);
 
 async function startBot() {
     const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(`Usando a versão ${version} do Baileys, mais recente: ${isLatest}`);
+    
     const sock = makeWASocket({
         printQRInTerminal: true,
         auth: state
