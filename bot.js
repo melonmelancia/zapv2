@@ -34,7 +34,7 @@ checkPermissions();
 // Usar o estado de autenticação com a pasta auth_info
 const { state, saveCreds } = useMultiFileAuthState(authPath);
 
-// Criar a conexão com o WhatsApp usando a autenticação armazenada
+// Criar a conexão com o WhatsApp usando a autenticação
 const conn = makeWASocket({
     auth: state || {},  // Usando o estado de autenticação (se disponível)
     printQRInTerminal: false,  // Desabilitar QR Code, já que estamos usando autenticação com código
@@ -61,6 +61,11 @@ conn.ev.on('connection.update', (update) => {
 
 // Função para iniciar o bot
 async function startBot() {
+    if (!state?.creds?.me) {
+        console.log('Erro: O estado de autenticação não foi carregado corretamente.');
+        return;
+    }
+
     try {
         await conn.connect();  // Conectar ao WhatsApp
     } catch (err) {
